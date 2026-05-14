@@ -1,0 +1,11 @@
+[package]
+name = "friend-of-ziggy"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+serde = { version = "1.0.228", features = ["derive"] }
+serenity = "0.12.5"
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "time"] }
+ureq = { version = "3.3.0", features = ["json"] }
