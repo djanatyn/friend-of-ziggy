@@ -3,7 +3,7 @@
 serenity discord bot to give updates on dogonline.net markets
 
 <p align="center">
-  <img src="https://github.com/djanatyn/friend-of-ziggy/raw/main/ziggy.jpg" alt="ziggy!">
+  <img src="https://raw.githubusercontent.com/djanatyn/friend-of-ziggy/main/ziggy.png" alt="ziggy!">
 </p>
 
 ---
