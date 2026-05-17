@@ -1,4 +1,5 @@
 use anyhow::Context as AnyhowContext;
+use clap::Parser;
 use serenity::{
     all::RoleId,
     async_trait,
@@ -6,10 +7,25 @@ use serenity::{
     prelude::*,
 };
 
-use std::env;
-
 use friend_of_ziggy::poll::MarketPoller;
 
+#[derive(Parser)]
+struct Cli {
+    /// Token for Discord bot user.
+    #[arg(env = "DISCORD_TOKEN", hide_env_values = true)]
+    discord_token: String,
+    /// Session token for dogonline.net.
+    #[arg(env = "DOG_ONLINE_AUTH_TOKEN", hide_env_values = true)]
+    dog_online_auth_token: String,
+    /// Discord Thread ID for market notifications.
+    #[arg(env = "DISCORD_THREAD_ID")]
+    thread_id: ChannelId,
+    /// Discord Role ID for HOT HOT HOT!!! notifications.
+    #[arg(env = "DISCORD_MENTION_ROLE_ID")]
+    mention_role_id: RoleId,
+}
+
+#[derive(Debug)]
 struct Handler {
     thread_id: ChannelId,
 }
@@ -30,38 +46,24 @@ impl EventHandler for Handler {
     }
 }
 
-fn required_env(key: &str) -> anyhow::Result<String> {
-    match env::var(key) {
-        Ok(value) => Ok(value),
-        Err(env::VarError::NotPresent) => {
-            anyhow::bail!("missing required environment variable {key}")
-        }
-        Err(env::VarError::NotUnicode(_)) => {
-            anyhow::bail!("environment variable {key} is not valid Unicode")
-        }
-    }
-}
-
-fn required_channel_id(key: &str) -> anyhow::Result<u64> {
-    required_env(key)?
-        .parse()
-        .with_context(|| format!("environment variable {key} is not a valid Discord ID"))
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let discord_token = required_env("DISCORD_TOKEN")?;
-    let dog_online_auth_token = required_env("DOG_ONLINE_AUTH_TOKEN")?;
-    let thread_id = ChannelId::new(required_channel_id("DISCORD_THREAD_ID")?);
-    let mention_role_id = RoleId::new(required_channel_id("DISCORD_MENTION_ROLE_ID")?);
+    let args = Cli::parse();
 
     let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
-    let mut client = Client::builder(&discord_token, intents)
-        .event_handler(Handler { thread_id })
+    let mut client = Client::builder(args.discord_token, intents)
+        .event_handler(Handler {
+            thread_id: args.thread_id,
+        })
         .await
         .context("failed to build Serenity client")?;
 
-    let poller = MarketPoller::new(&dog_online_auth_token, &client, thread_id, mention_role_id);
+    let poller = MarketPoller::new(
+        &args.dog_online_auth_token,
+        &client,
+        args.thread_id,
+        args.mention_role_id,
+    );
 
     tokio::spawn(async move {
         poller.run().await;
