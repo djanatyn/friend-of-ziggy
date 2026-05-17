@@ -8,11 +8,11 @@ use serenity::{
 
 use std::env;
 
+use friend_of_ziggy::poll::MarketPoller;
+
 struct Handler {
     thread_id: ChannelId,
 }
-
-use friend_of_ziggy::poll::MarketPoller;
 
 #[async_trait]
 impl EventHandler for Handler {
