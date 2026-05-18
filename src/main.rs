@@ -6,6 +6,7 @@ use serenity::{
     model::{channel::Message, gateway::Ready, id::ChannelId},
     prelude::*,
 };
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 use friend_of_ziggy::poll::MarketPoller;
 
@@ -48,6 +49,10 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
     let args = Cli::parse();
 
     let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;

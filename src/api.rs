@@ -1,5 +1,6 @@
 use anyhow::{Context, Result, anyhow};
 use serde::Deserialize;
+use tracing::{debug, info, instrument};
 
 use crate::market::MarketCondition;
 
@@ -18,6 +19,7 @@ pub struct MarketConditionResponse {
 }
 
 impl MarketState {
+    #[instrument(skip(auth_token), err)]
     pub fn fetch(auth_token: &str) -> Result<Self> {
         let cookie = format!("__Secure-better-auth.session_token={auth_token}");
 
@@ -25,11 +27,19 @@ impl MarketState {
             .header("Cookie", &cookie)
             .call()
             .context("request to market API failed")?;
+        debug!(response = ?response, "fetched market status");
 
-        response
+        let state: Self = response
             .body_mut()
             .read_json()
-            .context("failed to decode market API response")
+            .context("failed to decode market API response")?;
+
+        info!(
+            condition_message = %state.market_conditions.message,
+            condition_id = %state.market_conditions.id,
+            "fetched market state"
+        );
+        Ok(state)
     }
 
     pub fn market_condition(&self) -> Result<MarketCondition> {
