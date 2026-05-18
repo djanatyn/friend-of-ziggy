@@ -35,10 +35,7 @@ struct Handler {
 impl EventHandler for Handler {
     async fn message(&self, _: Context, msg: Message) {
         if msg.channel_id == self.thread_id {
-            println!(
-                "thread message from {} ({}): {}",
-                msg.author.name, msg.author.id, msg.content
-            );
+            println!("> {} ({}): {}", msg.author.name, msg.author.id, msg.content);
         }
     }
 

@@ -1,11 +1,11 @@
 use anyhow::Context;
 use humantime::{format_duration, format_rfc3339};
 use std::sync::Arc;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 
 use serenity::{
     Client,
-    all::{ChannelId, Http, RoleId},
+    all::{ChannelId, Http, Message, RoleId},
     prelude::Mentionable,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -82,7 +82,20 @@ impl MarketPoller {
                 next_poll = format_rfc3339(time + next_poll).to_string(),
                 "processing tick, scheduled next poll"
             );
-            self.check_once().await;
+            match self.check_once().await {
+                Ok(message) => {
+                    info!(
+                        ?message.timestamp,
+                        ?message.mentions,
+                        ?message.mention_roles,
+                        ?message.content,
+                        "sent message"
+                    )
+                }
+                Err(error) => {
+                    error!(%error, "failed check")
+                }
+            };
         }
     }
 
@@ -118,17 +131,9 @@ impl MarketPoller {
 
     /// Run a scheduled check, fetching market status and posting a message to Discord.
     #[instrument(skip(self))]
-    async fn check_once(&self) {
-        match self.fetch().await {
-            Ok(condition) => {
-                let text = self.discord_message(&condition);
-                if let Err(error) = self.thread_id.say(&self.discord_http, text).await {
-                    eprintln!("failed to send Discord message: {error}");
-                }
-            }
-            Err(error) => {
-                eprintln!("failed to fetch market state: {error}");
-            }
-        }
+    async fn check_once(&self) -> anyhow::Result<Message> {
+        let condition = self.fetch().await?;
+        let text = self.discord_message(&condition);
+        Ok(self.thread_id.say(&self.discord_http, text).await?)
     }
 }
